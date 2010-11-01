@@ -1,0 +1,11 @@
+%h1 Products
+
+- for product in @products do
+  = product.name
+  = product.price
+  - if can? :destroy, product
+    = link_to 'destroy', product, :method => :delete
+  %br
+
+- if can? :create, Product
+  = link_to 'new product', new_user_product_path(current_user)

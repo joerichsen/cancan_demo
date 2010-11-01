@@ -1,0 +1,108 @@
+== Sample CanCan apps
+
+Nov. 1st 2010 I gave a presentation on authorization using CanCan.
+
+This is the sample Rails app and these are my notes
+
+
+rvm use 1.9.2@cancan_demo --create
+gem install bundler rails
+rails new cancan_demo
+Gemfile add
+  gem 'cancan'
+  gem 'inherited_resources'
+  gem 'devise'
+  gem 'formtastic'
+  gem 'haml'
+bundle install
+
+rails generate formtastic:install 
+rails generate model Product title:string price:integer user:belongs_to
+rake db:migrate
+
+mkdir app/views/products
+rm public/index.html
+fix routes
+  resources :products
+  root :to => "products#index"
+
+index.html.haml
+%h1 Products
+- for product in @products do
+  = product.user_id
+  = product.title
+  = product.price
+  = link_to 'destroy', product, :method => :delete
+  %br
+
+= link_to 'new product', new_product_path
+
+new.html.haml
+%h1 New Product
+- semantic_form_for @product do |f|
+  = f.inputs :title, :price
+  = f.buttons
+
+rails generate devise:install
+rails generate devise User
+rake db:migrate
+
+application.html.erb
+  <% if !user_signed_in? %>
+    <%= link_to 'sign_up', new_user_registration_path %>
+    <%= link_to 'sign in', new_user_session_path %>
+  <% else %>
+    <%= link_to 'sign out', destroy_user_session_path %>
+  <% end %>
+
+CanCan
+class Ability
+  include CanCan::Ability
+
+  def initialize(user)
+    if (user)
+      can :read, Product
+      can :manage, Product, :user_id => user.id
+    else
+      can :read, Product
+    end
+  end
+end
+
+:read, :create, :update, :destroy
+
+Abilities with hashes
+Abilities with blocks
+  can :manage, Product do |product|
+    product.user == user && product.editable?
+  end
+
+%h1 Products
+- for product in @products do
+  = product.user_id
+  = product.title
+  = product.price
+  = link_to 'destroy', product, :method => :delete
+  %br
+
+- if can? :create, Product
+  = link_to 'new product', new_user_product_path(current_user)
+
+
+class ProductsController < InheritedResources::Base
+  belongs_to :user, :optional => true
+  load_and_authorize_resource :through => :current_user
+
+  def create
+    create! { products_path }
+  end
+end
+
+%h1 New Product
+- semantic_form_for [@user, @product] do |f|
+  = f.inputs do
+    = f.input :user_id, :as => :string
+    = f.input :title
+    = f.input :price
+  = f.buttons
+
